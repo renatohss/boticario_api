@@ -1,4 +1,5 @@
 from pymongo import MongoClient
+from helpers.rest_handler import http_response
 
 class MongoConnect:
     '''
@@ -58,4 +59,5 @@ class MongoConnect:
         collection = self.collection_fetcher(collection)
         response = collection.find_one_and_delete(parameters)
         return response
+
 
