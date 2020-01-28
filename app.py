@@ -139,10 +139,4 @@ def orders():
 def get_cashback():
     response = cashback_request()
 
-    return http_response(response['status_code'], response['message'], response['payload'])
-
-
-@app.route('/health_check')
-@jwt_required
-def health_check():
-    return http_response(200, 'Server up!', None)
+    return http_response(response['http_code'], response['message'], response['payload'])

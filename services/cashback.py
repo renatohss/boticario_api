@@ -10,6 +10,7 @@ def cashback_request():
 
     url = 'https://mdaqk8ek5j.execute-api.us-east-1.amazonaws.com/v1/cashback?cpf=12312312323'
     headers = {'token': 'ZXPURQOARHiMc6Y0flhRC1LVlZQVFRnm' }
+    
     try:
         req = requests.get(url, headers=headers)
     except ConnectionError:
@@ -17,9 +18,9 @@ def cashback_request():
         response['message'] = 'Could not connect to external API - Check URI'
 
     status_code = req.status_code
-    print(status_code)
     if status_code != 200:
-        pass
+        response['http_code'] = status_code
+        response['message'] = 'Request failed'
     else:
         payload = json.loads(req.text)
         response['http_code'] = status_code
