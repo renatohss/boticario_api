@@ -25,7 +25,7 @@ def jwt_required(func):
     
     return decorated
 
-def generate_jwt_token(app, cpf):
+def generate_jwt_token(cpf):
     token_expiration = datetime.datetime.utcnow() + datetime.timedelta(minutes=5000)
     jwt_token = jwt.encode({'user': cpf, 'exp': token_expiration}, current_app.config['SECRET_KEY'])
     return jwt_token.decode("utf-8")

@@ -1,22 +1,23 @@
 from flask import Flask, request, make_response
 from helpers.rest_handler import http_response
+from helpers.validators import validate_json_format
 from services.users import UserServices
 from services.orders import OrderServices
 from services.auth import jwt_required
+from services.cashback import cashback_request
 import os
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secretkeytest'
 # app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY')
 
-userservices = UserServices()
-orderservices = OrderServices()
-
-@app.route('/users', methods=['POST', 'GET', 'DELETE'])
+@app.route('/users', methods=['POST', 'GET'])
 def create_user():
-    
+    userservices = UserServices()
     if request.method == 'POST':
-        body = request.json
+        body = request.get_json()
+
+        validate_json_format(body)
         
         try:
             data = {
@@ -32,14 +33,14 @@ def create_user():
         response = userservices.create_new_user(data)
         return http_response(response['http_code'], response['message'], response['payload'])
     
-    elif request.method == 'GET':
+    if request.method == 'GET':
         response = userservices.get_all_users()
         return http_response(response['http_code'], response['message'], response['payload'])
 
 
 @app.route('/login', methods=['GET'])
 def login():
-
+    userservices = UserServices()
     body = request.get_json()
 
     if not isinstance(body, dict):
@@ -60,30 +61,45 @@ def login():
 @app.route('/orders', methods=['GET', 'DELETE', 'POST', 'PUT'])
 @jwt_required
 def orders():
+    orderservices = OrderServices()
     if request.method == 'GET':
         body = request.get_json()
 
-        if not isinstance(body, dict):
-            return http_response(400, 'Invalid request - Expecting a JSON body', None)
-
-        else:
-            try:
-                data = {
-                    'seller_cpf': str(body['seller_cpf']),
-                    'start_date': body['start_date'],
-                    'end_date': body['end_date']
-                }
-            except KeyError as error:
-                return http_response(422, 'Missing {} key on JSON body'.format(str(error)), None)
-
-            response = orderservices.get_orders(data)
+        validate_json_format(body)
         
-            return response
+        try:
+            data = {
+                'seller_cpf': str(body['seller_cpf']),
+                'start_date': body['start_date'],
+                'end_date': body['end_date']
+            }
+        except KeyError as error:
+            return http_response(422, 'Missing {} key on JSON body'.format(str(error)), None)
+
+        response = orderservices.get_orders(data)
+        
+        return http_response(response['http_code'], response['message'], response['payload'])
         
     if request.method == 'DELETE':
-        pass
+        body = request.get_json()
+
+        validate_json_format(body)
+
+        try:
+            data = {
+                'seller_cpf': str(body['cpf']),
+                'order_code': str(body['order_code'])
+            }
+        except KeyError as error:
+            return http_response(422, 'Missing {} key on JSON body'.format(str(error)), None)
+
+        response = orderservices.delete_order(data)
+        return http_response(response['http_code'], response['message'], response['payload'])
+
     if request.method == 'POST':
         body = request.get_json()
+
+        validate_json_format(body)
 
         try:
             data = {
@@ -100,7 +116,30 @@ def orders():
         return http_response(response['http_code'], response['message'], response['payload'])
 
     if request.method == 'PUT':
-        pass
+        body = request.get_json()
+
+        validate_json_format(body)
+
+        try:
+            data = {
+                'order_code': str(body['order_code']),
+                'seller_cpf': str(body['seller_cpf']),
+                'updated_fields': body['updated_fields']
+            }
+        except KeyError as error:
+            return http_response(422, 'Missing {} key on JSON body'.format(str(error)), None)
+
+        response = orderservices.update_order(data)
+
+        return http_response(response['http_code'], response['message'], response['payload'])
+
+
+@app.route('/get_cashback', methods=['GET'])
+@jwt_required
+def get_cashback():
+    response = cashback_request()
+
+    return http_response(response['status_code'], response['message'], response['payload'])
 
 
 @app.route('/health_check')

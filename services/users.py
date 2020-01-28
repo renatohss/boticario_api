@@ -54,7 +54,7 @@ class UserServices:
             user_list.append(user)
 
         self.response['http_code'] = 200
-        self.response['message'] = 'Request OK!'
+        self.response['message'] = 'Request successful'
         self.response['payload'] = user_list
         return self.response
 

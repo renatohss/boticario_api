@@ -61,3 +61,11 @@ class MongoConnect:
         return response
 
 
+    def update_one(self, query, updated_fields, collection):
+        '''
+        Finds a single document with the specified parameters and updates the selected fields with informed values
+        '''
+        collection = self.collection_fetcher(collection)
+        response = collection.update_one(query, {'$set': updated_fields})
+        return response
+

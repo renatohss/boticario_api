@@ -30,6 +30,18 @@ class OrderServices:
         return (cashback_percentage, cashback)
 
 
+    @staticmethod
+    def parse_updated_fields(updated_fields):
+
+        response = {}
+
+        for k, v in updated_fields.items():
+            if v:
+                response[k] = v
+        
+        return response
+
+
     def create_new_order(self, parameters):
         '''
         This method receives the order's parameters set by the user and saves them as a new object in the database
@@ -39,19 +51,13 @@ class OrderServices:
         if order_check:
             self.response['http_code'] = 409
             self.response['message'] = 'Cannot create new order - Order with informed code already exists'
-            return self.response
         else:
             parameters['status'] = 'Em validação' if parameters['seller_cpf'] != '15350946056' else 'Aprovado'
-            try:
-                self.mongo.insert(parameters, self.collection)
-            except:
-                self.response['http_code'] = 500
-                self.response['message'] = 'Could not create new order - Error with MongoDB Connection'
-                return self.response
-            
+            self.mongo.insert(parameters, self.collection)
             self.response['http_code'] = 200
             self.response['message'] = 'Order created successfully!' 
-            return self.response
+
+        return self.response
 
     def get_orders(self, parameters):
         '''
@@ -73,7 +79,57 @@ class OrderServices:
 
         percentage, coeficient = self.calculate_cashback(order_total)
 
+        for order in order_list:
+            order['cashback_percentage'] = percentage
+            order['cashback_value'] = round((order['order_value'] * coeficient), 2)
+
         self.response['http_code'] = 200
         self.response['message'] = 'Request successful'
         self.response['payload'] = order_list
+        return self.response
+
+
+    def delete_order(self, parameters):
+        '''
+        This method will delete the order with the specified order code if its status is 
+        different than "Aprovado" and it's owned by the informed CPF
+        '''
+        status_check = self.mongo.find_one(parameters, self.collection)
+        if status_check:
+            if status_check['status'] != 'Aprovado':
+                self.mongo.find_one_and_delete(parameters, self.collection)
+                self.response['status_code'] = 200
+                self.response['message'] = 'Order deleted with success'
+            else:
+                self.response['status_code'] = 400
+                self.response['message'] = 'Could not delete order - Status is "Aprovado"'
+        else:
+            self.response['status_code'] = 400
+            self.response['message'] = f'The order with order code {parameters["order_code"]} does not exists for the CPF {parameters["cpf"]}'
+        return self.response
+
+
+    def update_order(self, parameters):
+        '''
+        This method extracts the query and update information from the parameters and updates the specified order if its
+        status is not "Aprovado" and is owned by the informed CPF
+        '''
+        query = {
+            'seller_cpf': parameters['seller_cpf'],
+            'order_code': parameters['order_code']
+        }
+
+        status_check = self.mongo.find_one(query, self.collection)
+        if status_check:
+            if status_check['status'] != 'Aprovado':
+                updated_fields = self.parse_updated_fields(parameters['updated_fields'])
+                self.mongo.update_one(query, updated_fields, self.collection)
+                self.response['status_code'] = 200
+                self.response['message'] = 'Order updated with success'
+            else:
+                self.response['status_code'] = 400
+                self.response['message'] = 'Could not update order - Status is "Aprovado"'
+        else:
+            self.response['status_code'] = 400
+            self.response['message'] = f'The order with order code {parameters["order_code"]} does not exists for the CPF {parameters["seller_cpf"]}'
         return self.response
