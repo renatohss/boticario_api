@@ -71,7 +71,7 @@ class UserServices:
 
         check_hash = check_password_hash(userdata['password'], parameters['password'])
         if check_hash:
-            token = generate_jwt_token(current_app, parameters['cpf'])
+            token = generate_jwt_token(parameters['cpf'])
             self.response['http_code'] = 200
             self.response['message'] = 'Authentication OK'
             self.response['payload'] = {

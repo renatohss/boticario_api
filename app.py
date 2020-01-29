@@ -8,8 +8,8 @@ from services.cashback import cashback_request
 import os
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secretkeytest'
-# app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY')
+
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 
 @app.route('/users', methods=['POST', 'GET'])
 def create_user():
